@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load hp_tags %}
+{% block title %}Nurse — Rhudesi{% endblock %}
+{% block logo_suffix %}Nursing{% endblock %}
+{% block page_title %}Vitals Queue{% endblock %}
+{% block nav %}
+<a href="{% url 'nurse_dashboard' %}" class="sb-link on"><span class="sb-link-ico">📋</span>Vitals Queue <span class="badge b-teal" style="margin-left:auto">{{ visits|length }}</span></a>
+<a href="{% url 'ward_dashboard' %}" class="sb-link"><span class="sb-link-ico">🛏</span>Ward</a>
+<a href="{% url 'nurse_history' %}" class="sb-link"><span class="sb-link-ico">📂</span>History</a>
+{% endblock %}
+{% block topbar_widgets %}
+<div style="display:flex;align-items:center;gap:8px">
+  <span class="txt-xs txt-dim">Vitals Nurse</span>
+  <label class="tog"><input type="checkbox" id="togVitals" {% if nurse.is_vital_signs_nurse %}checked{% endif %} onchange="toggleField('is_vital_signs_nurse',this)"><div class="tog-track"></div><div class="tog-dot"></div></label>
+  <span class="txt-xs txt-dim">Available</span>
+  <label class="tog"><input type="checkbox" id="togAvail" {% if nurse.is_available %}checked{% endif %} onchange="toggleField('is_available',this)"><div class="tog-track"></div><div class="tog-dot"></div></label>
+</div>
+{% endblock %}
+{% block content %}
+<div class="tabs">
+  <div class="tab on" data-tabs="nu" data-tab="nuQ">Queue <span class="tab-ct">{{ visits|length }}</span></div>
+  <div class="tab" data-tabs="nu" data-tab="nuH">Recent</div>
+</div>
+
+<div id="nuQ" data-group="nu" class="panel on">
+  {% if not visits %}
+  <div class="card"><div style="padding:52px;text-align:center">
+    <div style="font-size:2rem;margin-bottom:8px">📋</div>
+    <div style="font-weight:700;color:var(--text);margin-bottom:4px">No patients waiting</div>
+    <div style="font-size:.82rem;color:var(--text3)">Patients who have paid will appear here for vitals</div>
+  </div></div>
+  {% endif %}
+  {% for v in visits %}
+  <div class="vc">
+    <div class="vc-h" onclick="C.toggle('nb{{ v.id }}')">
+      <div class="vc-num">{{ v.queue_number }}</div>
+      <div class="vc-info">
+        <div class="vc-name">{{ v.patient.display_name }}
+          <span class="badge {% if v.vitals %}b-teal{% else %}b-amber{% endif %}">{% if v.vitals %}Vitals Done{% else %}Awaiting{% endif %}</span>
+        </div>
+        <div class="vc-meta">
+          {% if v.patient.date_of_birth %}<span>{{ v.patient.date_of_birth|age }}yr</span><span>·</span>{% endif %}
+          <span>{{ v.patient.get_gender_display|default:"—" }}</span>
+          <span>·</span><span>Dr. {{ v.doctor.get_full_name|default:v.doctor.username }}</span>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm">{% if v.vitals %}Update Vitals{% else %}Take Vitals{% endif %}</button>
+    </div>
+    <div class="vc-body {% if not v.vitals %}{% else %}hidden{% endif %}" id="nb{{ v.id }}">
+      {% if v.patient.allergies %}<div class="alert a-warn mt-1 mb-2">⚠ {{ v.patient.allergies }}</div>{% endif %}
+      {% if v.patient.blood_group %}<div style="margin-bottom:10px"><span class="badge b-red">{{ v.patient.blood_group }}</span></div>{% endif %}
+      <div class="g4 mt-1" style="gap:8px">
+        <div class="fg mb-1"><label class="lbl">BP (mmHg)</label><input class="inp" id="bp{{ v.id }}" placeholder="120/80" value="{{ v.vitals.blood_pressure|default:'' }}"></div>
+        <div class="fg mb-1"><label class="lbl">Pulse (bpm)</label><input class="inp" type="number" id="pr{{ v.id }}" placeholder="72" value="{{ v.vitals.pulse_rate|default:'' }}"></div>
+        <div class="fg mb-1"><label class="lbl">Temp (°C)</label><input class="inp" type="number" id="tp{{ v.id }}" step="0.1" placeholder="36.5" value="{{ v.vitals.temperature|default:'' }}"></div>
+        <div class="fg mb-1"><label class="lbl">SpO₂ (%)</label><input class="inp" type="number" id="os{{ v.id }}" placeholder="98" value="{{ v.vitals.oxygen_saturation|default:'' }}"></div>
+        <div class="fg mb-1"><label class="lbl">Resp (/min)</label><input class="inp" type="number" id="rr{{ v.id }}" placeholder="18" value="{{ v.vitals.respiratory_rate|default:'' }}"></div>
+        <div class="fg mb-1"><label class="lbl">Weight (kg)</label><input class="inp" type="number" id="wt{{ v.id }}" step="0.1" placeholder="70" value="{{ v.vitals.weight|default:'' }}" oninput="calcBmi({{ v.id }})"></div>
+        <div class="fg mb-1"><label class="lbl">Height (cm)</label><input class="inp" type="number" id="ht{{ v.id }}" placeholder="170" value="{{ v.vitals.height|default:'' }}" oninput="calcBmi({{ v.id }})"></div>
+        <div class="fg mb-1"><label class="lbl">BMI</label><input class="inp" id="bm{{ v.id }}" readonly style="background:var(--surface3)" value="{{ v.vitals.bmi|default:'' }}"></div>
+        <div class="fg mb-1"><label class="lbl">Pain (0–10)</label><input class="inp" type="number" id="pl{{ v.id }}" min="0" max="10" placeholder="0" value="{{ v.vitals.pain_level|default:'' }}"></div>
+      </div>
+      <div class="fg mt-1"><label class="lbl">Nurse Note</label><textarea class="inp" id="nn{{ v.id }}" rows="2" placeholder="Observations, additional comments…">{{ v.vitals.nurse_note|default:'' }}</textarea></div>
+      <div class="flex justify-b items-c mt-2">
+        <span class="txt-xs txt-muted">{% if v.vitals %}Last: {{ v.vitals.updated_at|date:"d M, H:i" }}{% endif %}</span>
+        <button class="btn btn-primary btn-sm" onclick="submitVitals({{ v.id }})">Submit → Send to Doctor</button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div id="nuH" data-group="nu" class="panel">
+  {% if not history %}
+  <div class="card"><div style="padding:40px;text-align:center;color:var(--text3);font-size:.83rem">No recent history</div></div>
+  {% else %}
+  <div class="card"><div class="tbl-wrap"><table>
+    <thead><tr><th>#</th><th>Patient</th><th>Doctor</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody>{% for v in history %}<tr>
+      <td class="mono txt-muted">{{ v.queue_number }}</td>
+      <td class="fw-7">{{ v.patient.display_name }}</td>
+      <td class="txt-dim txt-sm">Dr. {{ v.doctor.get_full_name|default:v.doctor.username }}</td>
+      <td><span class="badge {% if v.status == 'completed' %}b-teal{% else %}b-blue{% endif %}">{{ v.get_status_display }}</span></td>
+      <td class="txt-xs txt-muted">{{ v.updated_at|date:"d M, H:i" }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div></div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block js %}
+<script>
+async function toggleField(field,el){
+  const r=await C.post('/api/toggle-availability/',{field});
+  if(r.status==='ok')C.toast(r.value?'Active':'Inactive','ok');
+  else{C.toast(r.error||'Error','err');el.checked=!el.checked;}
+}
+function calcBmi(vid){
+  const w=+document.getElementById('wt'+vid)?.value,h=+document.getElementById('ht'+vid)?.value;
+  if(w&&h){const el=document.getElementById('bm'+vid);if(el)el.value=(w/((h/100)**2)).toFixed(1);}
+}
+async function submitVitals(vid){
+  const r=await C.post(`/api/submit-vitals/${vid}/`,{
+    blood_pressure:document.getElementById('bp'+vid)?.value||'',
+    pulse_rate:document.getElementById('pr'+vid)?.value||'',
+    temperature:document.getElementById('tp'+vid)?.value||'',
+    oxygen_saturation:document.getElementById('os'+vid)?.value||'',
+    respiratory_rate:document.getElementById('rr'+vid)?.value||'',
+    weight:document.getElementById('wt'+vid)?.value||'',
+    height:document.getElementById('ht'+vid)?.value||'',
+    bmi:document.getElementById('bm'+vid)?.value||'',
+    pain_level:document.getElementById('pl'+vid)?.value||'',
+    nurse_note:document.getElementById('nn'+vid)?.value||'',
+  });
+  if(r.status==='ok'){C.toast('Vitals submitted — sent to doctor!','ok');setTimeout(()=>location.reload(),400);}
+  else C.toast(r.error,'err');
+}
+</script>
+{% endblock %}

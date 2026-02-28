@@ -1,0 +1,179 @@
+{% load hp_tags %}<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Receipt — Rhudesi Hospital</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f0f4f8;padding:32px;display:flex;flex-direction:column;align-items:center;gap:14px}
+button{padding:9px 20px;background:#00C896;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit}
+.card{background:#fff;width:100%;max-width:520px;border-radius:10px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)}
+.hd{background:linear-gradient(135deg,#0F1B2D,#162236);padding:20px 24px;color:#fff}
+.hd-t{font-size:1.1rem;font-weight:800;margin-bottom:2px;color:#E8F0F8}
+.hd-s{font-size:.7rem;color:#8DA8C4}
+.body{padding:20px 24px}
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.ig-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.il{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8DA8C4}
+.iv{font-weight:700;font-size:.84rem;color:#0F1B2D;margin-top:2px}
+.div{height:1px;background:#E5EBF0;margin:14px 0}
+.sec-title{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#8DA8C4;margin-bottom:8px}
+.detail-box{background:#f8fafc;border:1px solid #E5EBF0;border-radius:6px;padding:11px 13px;margin-bottom:12px}
+.detail-row{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;border-bottom:1px solid #f0f4f8}
+.detail-row:last-child{border-bottom:none}
+.dr-l{font-size:.8rem;color:#4A5568}
+.dr-v{font-size:.8rem;font-weight:700;color:#0F1B2D;font-family:'Fira Code',monospace}
+.amt{background:#f0fdf9;border:1px solid #a7f3d0;border-radius:7px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.a-l{font-size:.68rem;font-weight:700;text-transform:uppercase;color:#059669}
+.a-v{font-family:'Fira Code',monospace;font-size:1.5rem;font-weight:700;color:#059669}
+.sig{display:flex;justify-content:space-between;margin-top:24px;gap:16px}
+.sb{flex:1;text-align:center}
+.sl{border-top:1px solid #E5EBF0;margin-top:44px;margin-bottom:5px}
+.sn{font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8DA8C4}
+.foot{padding:10px;background:#f9fafb;border-top:1px solid #E5EBF0;text-align:center;font-size:.66rem;color:#8DA8C4}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.b-green{background:#dcfce7;color:#15803d}
+.b-amber{background:#fef9c3;color:#a16207}
+@media print{button{display:none!important}body{background:#fff;padding:0}.card{box-shadow:none;border-radius:0;max-width:100%}}
+</style>
+</head>
+<body>
+<button onclick="window.print()">🖨 Print Receipt</button>
+<div class="card">
+  <div class="hd">
+    <div class="hd-t">Rhudesi Hospital</div>
+    <div class="hd-s">Official Payment Receipt</div>
+  </div>
+  <div class="body">
+
+    <!-- Basic Info -->
+    <div class="ig">
+      <div><div class="il">Receipt No.</div><div class="iv">#{{ payment.id }}</div></div>
+      <div><div class="il">Visit Ref.</div><div class="iv">#{{ payment.visit.id }}</div></div>
+      <div><div class="il">Date Paid</div><div class="iv">{{ payment.paid_at|date:"d M Y" }}</div></div>
+      <div><div class="il">Time</div><div class="iv">{{ payment.paid_at|date:"H:i" }}</div></div>
+    </div>
+
+    <div class="div"></div>
+
+    <!-- Patient & Staff -->
+    <div class="ig-3">
+      <div><div class="il">Patient</div><div class="iv">{{ payment.patient.display_name }}</div></div>
+      <div><div class="il">Accountant</div><div class="iv">{{ payment.accountant.display_name|default:"—" }}</div></div>
+      <div><div class="il">Doctor</div><div class="iv">Dr. {{ payment.visit.doctor.get_full_name|default:payment.visit.doctor.username }}</div></div>
+    </div>
+
+    <div class="div"></div>
+
+    <!-- Service Details -->
+    <div class="sec-title">Service Details</div>
+    <div class="detail-box">
+      <div class="detail-row">
+        <span class="dr-l">Service Type</span>
+        <span class="dr-v">{{ payment.get_payment_type_display }}</span>
+      </div>
+
+      {% if payment.payment_type == 'consultation' %}
+      <div class="detail-row">
+        <span class="dr-l">Consultation Fee</span>
+        <span class="dr-v">₦{{ payment.amount|floatformat:0 }}</span>
+      </div>
+      {% endif %}
+
+      {% if payment.prescription %}
+      <div class="detail-row">
+        <span class="dr-l">Prescription Ref.</span>
+        <span class="dr-v">Rx #{{ payment.prescription.id }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="dr-l">No. of Drugs</span>
+        <span class="dr-v">{{ payment.prescription.drugs.count }}</span>
+      </div>
+      {% for item in payment.prescription.drugs.all %}
+      <div class="detail-row" style="padding-left:10px">
+        <span class="dr-l" style="color:#718096">{{ item.drug.name }}{% if item.drug.strength %} ({{ item.drug.strength }}){% endif %} ×{{ item.quantity }}</span>
+        <span class="dr-v">₦{{ item.price|floatformat:0 }}</span>
+      </div>
+      {% endfor %}
+      {% if payment.prescription.doctor_note %}
+      <div class="detail-row">
+        <span class="dr-l">Doctor's Note</span>
+        <span class="dr-v" style="font-family:inherit;font-size:.76rem">{{ payment.prescription.doctor_note }}</span>
+      </div>
+      {% endif %}
+      {% endif %}
+
+      {% if payment.lab_request %}
+      <div class="detail-row">
+        <span class="dr-l">Lab Request Ref.</span>
+        <span class="dr-v">Lab #{{ payment.lab_request.id }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="dr-l">No. of Tests</span>
+        <span class="dr-v">{{ payment.lab_request.tests.count }}</span>
+      </div>
+      {% for item in payment.lab_request.tests.all %}
+      <div class="detail-row" style="padding-left:10px">
+        <span class="dr-l" style="color:#718096">{{ item.test.name }}</span>
+        <span class="dr-v">₦{{ item.price_at_time|floatformat:0 }}</span>
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      {% if payment.admission %}
+      <div class="detail-row">
+        <span class="dr-l">Ward</span>
+        <span class="dr-v">{{ payment.admission.get_ward_display }} — Bed {{ payment.admission.bed_number }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="dr-l">Daily Fee</span>
+        <span class="dr-v">₦{{ payment.admission.daily_ward_fee|floatformat:0 }}/day</span>
+      </div>
+      <div class="detail-row">
+        <span class="dr-l">Reason</span>
+        <span class="dr-v" style="font-family:inherit;font-size:.76rem">{{ payment.admission.admission_reason|truncatechars:60 }}</span>
+      </div>
+      {% endif %}
+
+      {% if payment.surgery %}
+      <div class="detail-row">
+        <span class="dr-l">Procedure</span>
+        <span class="dr-v">{{ payment.surgery.procedure_name }}</span>
+      </div>
+      {% if payment.surgery.anesthesia_type %}
+      <div class="detail-row">
+        <span class="dr-l">Anesthesia</span>
+        <span class="dr-v">{{ payment.surgery.anesthesia_type }}</span>
+      </div>
+      {% endif %}
+      {% endif %}
+
+      <div class="detail-row" style="padding-top:6px;margin-top:4px;border-top:1px solid #E5EBF0">
+        <span class="dr-l" style="font-weight:700;color:#0F1B2D">Status</span>
+        <span class="badge b-green">Paid</span>
+      </div>
+    </div>
+
+    <!-- Total -->
+    <div class="amt">
+      <div class="a-l">Total Amount Paid</div>
+      <div class="a-v">₦{{ payment.amount|floatformat:0 }}</div>
+    </div>
+
+    <!-- Signatures -->
+    <div class="sig">
+      <div class="sb">
+        <div class="sl"></div>
+        <div class="sn">Accountant: {{ payment.accountant.display_name|default:"—" }}</div>
+      </div>
+      <div class="sb">
+        <div class="sl"></div>
+        <div class="sn">Patient Signature</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">Rhudesi Hospital · {% now "d F Y, H:i" %} · This is an official receipt</div>
+</div>
+</body>
+</html>

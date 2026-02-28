@@ -1,0 +1,37 @@
+{% extends "base.html" %}{% load hp_tags %}
+{% block title %}Records — Rhudesi{% endblock %}{% block logo_suffix %}Patient Portal{% endblock %}{% block page_title %}My Records{% endblock %}
+{% block nav %}
+<a href="{% url 'patient_dashboard' %}" class="sb-link"><span class="sb-link-ico">🏥</span>Dashboard</a>
+<a href="{% url 'patient_records' %}" class="sb-link on"><span class="sb-link-ico">📄</span>Records</a>
+<a href="{% url 'patient_profile' %}" class="sb-link"><span class="sb-link-ico">👤</span>Profile</a>
+{% endblock %}
+{% block content %}
+{% if not visits %}<div class="card"><div style="padding:52px;text-align:center;color:var(--text3)">No visit history yet</div></div>{% endif %}
+{% for v in visits %}
+<div class="vc">
+  <div class="vc-h" onclick="C.toggle('rv{{ v.id }}')">
+    <div class="vc-num" style="font-size:.63rem">{{ v.created_at|date:"d M" }}</div>
+    <div class="vc-info">
+      <div class="vc-name">Visit #{{ v.id }}<span class="badge {% if v.status == 'completed' %}b-teal{% else %}b-amber{% endif %}">{{ v.get_status_display }}</span></div>
+      <div class="vc-meta"><span>Dr. {{ v.doctor.get_full_name|default:v.doctor.username }}</span><span>·</span><span>{{ v.prescriptions.count }} Rx</span><span>·</span><span>{{ v.lab_requests.count }} Lab</span></div>
+    </div>
+    <div class="flex items-c gap-2">
+      <a href="/api/download-visit-summary/{{ v.id }}/" target="_blank" class="btn btn-ghost btn-sm">⬇ Summary</a>
+    </div>
+  </div>
+  <div class="vc-body hidden" id="rv{{ v.id }}">
+    {% if v.vitals %}
+    <div class="sl">Vitals</div>
+    <div class="vg" style="margin-top:6px">
+      {% if v.vitals.blood_pressure %}<div class="vg-item"><div class="vg-lbl">BP</div><div class="vg-val">{{ v.vitals.blood_pressure }}</div><div class="vg-unit">mmHg</div></div>{% endif %}
+      {% if v.vitals.pulse_rate %}<div class="vg-item"><div class="vg-lbl">Pulse</div><div class="vg-val">{{ v.vitals.pulse_rate }}</div><div class="vg-unit">bpm</div></div>{% endif %}
+      {% if v.vitals.temperature %}<div class="vg-item"><div class="vg-lbl">Temp</div><div class="vg-val">{{ v.vitals.temperature }}</div><div class="vg-unit">°C</div></div>{% endif %}
+      {% if v.vitals.weight %}<div class="vg-item"><div class="vg-lbl">Wt</div><div class="vg-val">{{ v.vitals.weight }}</div><div class="vg-unit">kg</div></div>{% endif %}
+      {% if v.vitals.bmi %}<div class="vg-item"><div class="vg-lbl">BMI</div><div class="vg-val">{{ v.vitals.bmi }}</div></div>{% endif %}
+    </div>{% endif %}
+    {% if v.doctor_notes.all %}<div class="sl">Doctor Notes</div><div class="tl">{% for n in v.doctor_notes.all %}<div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><div class="tl-text">{{ n.note }}</div><div class="tl-time">{{ n.created_at|date:"d M, H:i" }}</div></div></div>{% endfor %}</div>{% endif %}
+    {% if v.prescriptions.all %}<div class="sl">Prescriptions</div>{% for rx in v.prescriptions.all %}<div class="drug-row"><div class="drug-name">Rx #{{ rx.id }} — {{ rx.drugs.count }} drug(s)</div><span class="badge {% if rx.status == 'dispensed' %}b-teal{% else %}b-gray{% endif %}">{{ rx.get_status_display }}</span><a href="{% url 'print_prescription' rx.id %}" target="_blank" class="btn btn-ghost btn-xs">🖨</a></div>{% endfor %}{% endif %}
+    {% if v.lab_requests.all %}<div class="sl">Lab Results</div>{% for lr in v.lab_requests.all %}<div class="drug-row"><div class="drug-name">Lab #{{ lr.id }} — {{ lr.tests.count }} test(s)</div><span class="badge {% if lr.status == 'completed' %}b-teal{% else %}b-gray{% endif %}">{{ lr.get_status_display }}</span>{% if lr.status == 'completed' %}<a href="{% url 'print_lab_results' lr.id %}" target="_blank" class="btn btn-ghost btn-xs">🖨</a>{% endif %}</div>{% endfor %}{% endif %}
+  </div>
+</div>{% endfor %}
+{% endblock %}

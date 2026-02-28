@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% load hp_tags %}
+{% block title %}History — Rhudesi{% endblock %}{% block logo_suffix %}Pharmacy{% endblock %}{% block page_title %}Prescription History{% endblock %}
+{% block nav %}
+<a href="{% url 'pharmacist_dashboard' %}" class="sb-link"><span class="sb-link-ico">💊</span>Dashboard</a>
+<a href="{% url 'pharmacist_history' %}" class="sb-link on"><span class="sb-link-ico">📂</span>History</a>
+{% endblock %}
+{% block content %}
+<div class="card"><div class="tbl-wrap"><table>
+  <thead><tr><th>Patient</th><th>Drugs</th><th>Total</th><th>Status</th><th>Date</th><th></th></tr></thead>
+  <tbody>{% if not rxs %}<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text3)">No history</td></tr>{% endif %}
+  {% for rx in rxs %}<tr>
+    <td class="fw-7">{{ rx.patient.display_name }}</td>
+    <td class="txt-dim txt-sm">{{ rx.drugs.count }} item(s)</td>
+    <td class="mono fw-7" style="color:var(--teal)">₦{{ rx.total_price|floatformat:0 }}</td>
+    <td><span class="badge {% if rx.status == 'dispensed' %}b-teal{% elif rx.status == 'rejected' %}b-red{% else %}b-amber{% endif %}">{{ rx.get_status_display }}</span></td>
+    <td class="txt-xs txt-muted">{{ rx.created_at|date:"d M Y, H:i" }}</td>
+    <td><a href="{% url 'print_prescription' rx.id %}" target="_blank" class="btn btn-ghost btn-xs">🖨</a></td>
+  </tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

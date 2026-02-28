@@ -1,0 +1,30 @@
+{% load hp_tags %}<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lab Results — Rhudesi</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@500&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Plus Jakarta Sans',sans-serif;background:#f0f4f8;padding:32px;display:flex;flex-direction:column;align-items:center;gap:14px}button{padding:9px 20px;background:#00C896;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit}.card{background:#fff;width:100%;max-width:540px;border-radius:10px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)}.hd{background:linear-gradient(135deg,#0F1B2D,#162236);padding:20px 24px;color:#fff}.hd-t{font-size:1.1rem;font-weight:800;margin-bottom:2px;color:#E8F0F8}.hd-s{font-size:.7rem;color:#8DA8C4}.body{padding:20px 24px}.ig{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.il{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8DA8C4}.iv{font-weight:700;font-size:.84rem;color:#0F1B2D;margin-top:2px}.div{height:1px;background:#E5EBF0;margin:12px 0}.sl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8DA8C4;margin-bottom:8px}.test{padding:10px 12px;background:#f9fafb;border:1px solid #E5EBF0;border-radius:7px;margin-bottom:7px}.tn{font-weight:700;font-size:.85rem;color:#0F1B2D}.tc{font-size:.7rem;color:#8DA8C4;margin-top:2px;margin-bottom:7px}.res{padding:8px 10px;background:#f0fdf9;border:1px solid #a7f3d0;border-radius:5px;font-size:.79rem;white-space:pre-wrap;color:#065f46}.pend{font-size:.73rem;color:#92400e;background:#fef3c7;display:inline-block;padding:2px 9px;border-radius:4px}.sig{display:flex;justify-content:space-between;margin-top:22px;gap:16px}.sb{flex:1;text-align:center}.sl2{border-top:1px solid #E5EBF0;margin-top:44px;margin-bottom:5px}.sn{font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8DA8C4}.foot{padding:10px;background:#f9fafb;border-top:1px solid #E5EBF0;text-align:center;font-size:.66rem;color:#8DA8C4}@media print{button{display:none!important}body{background:#fff;padding:0}.card{box-shadow:none;border-radius:0;max-width:100%}}</style>
+</head><body>
+<button onclick="window.print()">🖨 Print Results</button>
+<div class="card">
+  <div class="hd"><div class="hd-t">Rhudesi Hospital</div><div class="hd-s">Laboratory Results — Ref. #{{ lr.id }}</div></div>
+  <div class="body">
+    <div class="ig">
+      <div><div class="il">Patient</div><div class="iv">{{ lr.patient.display_name }}</div></div>
+      <div><div class="il">Date</div><div class="iv">{{ lr.created_at|date:"d F Y" }}</div></div>
+      {% if lr.doctor %}<div><div class="il">Requesting Doctor</div><div class="iv">Dr. {{ lr.doctor.get_full_name|default:lr.doctor.username }}</div></div>{% endif %}
+      {% if lr.completed_at %}<div><div class="il">Completed</div><div class="iv">{{ lr.completed_at|date:"d F Y, H:i" }}</div></div>{% endif %}
+    </div>
+    <div class="div"></div>
+    <div class="sl">Test Results</div>
+    {% for t in lr.tests.all %}
+    <div class="test">
+      <div class="tn">{{ t.test.name }}</div>
+      {% if t.test.category %}<div class="tc">{{ t.test.category }}</div>{% endif %}
+      {% if t.is_completed and t.result_note %}<div class="res">{{ t.result_note }}</div>{% else %}<span class="pend">⏳ Pending</span>{% endif %}
+    </div>{% endfor %}
+    <div class="sig">
+      <div class="sb"><div class="sl2"></div><div class="sn">Lab Attendant</div></div>
+      <div class="sb"><div class="sl2"></div><div class="sn">Authorised By</div></div>
+    </div>
+  </div>
+  <div class="foot">Rhudesi Hospital · {% now "d F Y, H:i" %}</div>
+</div>
+</body></html>

@@ -1,0 +1,31 @@
+{% load hp_tags %}<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Prescription — Rhudesi</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@500&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Plus Jakarta Sans',sans-serif;background:#f0f4f8;padding:32px;display:flex;flex-direction:column;align-items:center;gap:14px}button{padding:9px 20px;background:#00C896;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit}.card{background:#fff;width:100%;max-width:500px;border-radius:10px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)}.hd{background:linear-gradient(135deg,#0F1B2D,#162236);padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-start}.hd-t{font-size:1.1rem;font-weight:800;margin-bottom:2px;color:#E8F0F8}.hd-s{font-size:.7rem;color:#8DA8C4}.rx-s{font-size:2.8rem;font-weight:900;color:rgba(255,255,255,.12);line-height:1}.body{padding:20px 24px}.ig{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.il{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8DA8C4}.iv{font-weight:700;font-size:.84rem;color:#0F1B2D;margin-top:2px}.div{height:1px;background:#E5EBF0;margin:12px 0}.sl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8DA8C4;margin-bottom:8px}.drug{padding:10px 12px;background:#f9fafb;border:1px solid #E5EBF0;border-radius:7px;margin-bottom:7px}.dn{font-weight:700;font-size:.85rem;color:#0F1B2D}.ds{font-size:.73rem;color:#5a7a96;margin-top:3px}.sig{display:flex;justify-content:space-between;margin-top:22px;gap:16px}.sb{flex:1;text-align:center}.sl2{border-top:1px solid #E5EBF0;margin-top:44px;margin-bottom:5px}.sn{font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8DA8C4}.foot{padding:10px;background:#f9fafb;border-top:1px solid #E5EBF0;text-align:center;font-size:.66rem;color:#8DA8C4}@media print{button{display:none!important}body{background:#fff;padding:0}.card{box-shadow:none;border-radius:0;max-width:100%}}</style>
+</head><body>
+<button onclick="window.print()">🖨 Print Prescription</button>
+<div class="card">
+  <div class="hd"><div><div class="hd-t">Rhudesi Hospital</div><div class="hd-s">Prescription Rx #{{ rx.id }}</div></div><div class="rx-s">℞</div></div>
+  <div class="body">
+    <div class="ig">
+      <div><div class="il">Patient</div><div class="iv">{{ rx.patient.display_name }}</div></div>
+      <div><div class="il">Date</div><div class="iv">{{ rx.created_at|date:"d F Y" }}</div></div>
+      {% if rx.doctor %}<div><div class="il">Doctor</div><div class="iv">Dr. {{ rx.doctor.get_full_name|default:rx.doctor.username }}</div></div>{% endif %}
+      <div><div class="il">Total</div><div class="iv" style="color:#059669">₦{{ rx.total_price|floatformat:0 }}</div></div>
+    </div>
+    <div class="div"></div>
+    <div class="sl">Medications</div>
+    {% for item in rx.drugs.all %}
+    <div class="drug">
+      <div class="dn">{{ item.drug.name }}{% if item.drug.strength %} <span style="font-weight:400;color:#8DA8C4">({{ item.drug.strength }})</span>{% endif %} <span style="float:right;font-family:'Fira Code',monospace;font-size:.82rem">×{{ item.quantity }}</span></div>
+      {% if item.dosage %}<div class="ds">{{ item.dosage }}</div>{% endif %}
+      {% if item.injection_days %}<div class="ds" style="color:#7c3aed">💉 {{ item.injection_days }} day(s) × {{ item.injection_times_per_day|default:1 }}/day</div>{% endif %}
+    </div>{% endfor %}
+    {% if rx.doctor_note %}<div style="padding:9px 11px;background:#eff6ff;border-left:2px solid #3b82f6;border-radius:5px;font-size:.79rem;margin-top:8px;color:#1e40af">{{ rx.doctor_note }}</div>{% endif %}
+    <div class="sig">
+      <div class="sb"><div class="sl2"></div><div class="sn">Doctor</div></div>
+      <div class="sb"><div class="sl2"></div><div class="sn">Pharmacist</div></div>
+    </div>
+  </div>
+  <div class="foot">Rhudesi Hospital · {% now "d F Y, H:i" %}</div>
+</div>
+</body></html>

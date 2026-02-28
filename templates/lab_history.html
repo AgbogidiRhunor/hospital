@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% load hp_tags %}
+{% block title %}History — Rhudesi{% endblock %}{% block logo_suffix %}Laboratory{% endblock %}{% block page_title %}Lab History{% endblock %}
+{% block nav %}
+<a href="{% url 'lab_dashboard' %}" class="sb-link"><span class="sb-link-ico">🔬</span>Dashboard</a>
+<a href="{% url 'lab_attendant_history' %}" class="sb-link on"><span class="sb-link-ico">📂</span>History</a>
+{% endblock %}
+{% block content %}
+<div class="card"><div class="tbl-wrap"><table>
+  <thead><tr><th>Patient</th><th>Tests</th><th>Status</th><th>Completed</th><th></th></tr></thead>
+  <tbody>{% if not requests %}<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text3)">No history</td></tr>{% endif %}
+  {% for lr in requests %}<tr>
+    <td class="fw-7">{{ lr.patient.display_name }}</td>
+    <td class="txt-dim txt-sm">{{ lr.tests.count }} test(s)</td>
+    <td><span class="badge {% if lr.status == 'completed' %}b-teal{% else %}b-amber{% endif %}">{{ lr.get_status_display }}</span></td>
+    <td class="txt-xs txt-muted">{{ lr.completed_at|date:"d M Y, H:i" }}</td>
+    <td><a href="{% url 'print_lab_results' lr.id %}" target="_blank" class="btn btn-ghost btn-xs">🖨</a></td>
+  </tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

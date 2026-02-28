@@ -1,0 +1,56 @@
+# =========================
+# Django / Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+*.pot
+*.py,cover
+*.cover
+*.coverage
+htmlcov/
+.coverage.*
+.pytest_cache/
+.mypy_cache/
+ruff_cache/
+
+# =========================
+# Virtual Environments
+# =========================
+venv/
+.venv/
+env/
+ENV/
+
+# =========================
+# Environment variables / secrets
+# =========================
+.env
+.env.*
+*.env
+
+# =========================
+# Django artifacts
+# =========================
+db.sqlite3
+media/
+staticfiles/
+# If you use collectstatic output folder:
+static_collected/
+
+# =========================
+# OS / Editor
+# =========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# =========================
+# Node (only if you used npm for frontend tooling)
+# =========================
+node_modules/
+dist/
+build/

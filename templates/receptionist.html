@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% load hp_tags %}
+{% block title %}Reception — Rhudesi{% endblock %}
+{% block logo_suffix %}Reception Desk{% endblock %}
+{% block page_title %}Register Visits{% endblock %}
+{% block nav %}
+<a href="{% url 'receptionist_dashboard' %}" class="sb-link on"><span class="sb-ico">🖥</span>Dashboard</a>
+{% endblock %}
+{% block topbar_widgets %}
+<button class="btn btn-primary" onclick="C.modal('nvModal')">+ New Visit</button>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-h"><span class="card-title">Today's Visits</span><span class="badge b-gray">{{ recent_visits|length }}</span></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>#</th><th>Patient</th><th>Doctor</th><th>Nurse</th><th>Status</th><th>Fee</th><th>Time</th></tr></thead>
+    <tbody>
+    {% if not recent_visits %}<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3)">No visits registered yet — click New Visit to start</td></tr>{% endif %}
+    {% for v in recent_visits %}
+    <tr>
+      <td class="mono txt-muted">{{ v.id }}</td>
+      <td style="font-weight:800">{{ v.patient.display_name }}</td>
+      <td class="txt-dim txt-sm">Dr. {{ v.doctor.get_full_name|default:v.doctor.username }}</td>
+      <td class="txt-dim txt-sm">{{ v.nurse.display_name|default:"—" }}</td>
+      <td><span class="badge {% if v.status == 'completed' %}b-teal{% elif v.status == 'pending_payment' %}b-amber{% else %}b-blue{% endif %}">{{ v.get_status_display }}</span></td>
+      <td class="mono txt-sm">₦{{ v.consultation_fee|floatformat:0 }}</td>
+      <td class="txt-xs txt-muted">{{ v.created_at|date:"d M, H:i" }}</td>
+    </tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+<!-- NEW VISIT MODAL -->
+<div class="overlay" id="nvModal"><div class="modal modal-lg">
+  <div class="modal-h"><div class="modal-title">Register New Visit</div><button class="modal-x" onclick="C.modal('nvModal',false)">×</button></div>
+  <div class="modal-b">
+    <!-- hidden csrf for reference -->
+    {% csrf_token %}
+    <div class="fg">
+      <label class="lbl">Patient <span class="req">*</span></label>
+      <div class="search-wrap">
+        <input class="inp" id="ptInp" placeholder="Search by name or username…" autocomplete="off">
+        <div class="search-drop" id="ptDrop"></div>
+      </div>
+      <input type="hidden" id="ptId">
+      <div id="ptSelected" style="margin-top:5px;font-size:.78rem;color:var(--teal);font-weight:700;display:none"></div>
+    </div>
+
+    <div class="fg">
+      <label class="lbl">Doctor Type</label>
+      <div style="display:flex;gap:8px">
+        <label id="lblGen" style="flex:1;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1.5px solid var(--teal);border-radius:var(--r-sm);cursor:pointer;font-size:.83rem;font-weight:700;color:var(--teal);background:var(--teal-light);transition:.15s">
+          <input type="radio" name="dType" value="general" checked onchange="switchType('general')"> General Practitioner
+        </label>
+        <label id="lblSpec" style="flex:1;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1.5px solid var(--border2);border-radius:var(--r-sm);cursor:pointer;font-size:.83rem;font-weight:700;color:var(--text2);transition:.15s">
+          <input type="radio" name="dType" value="specialist" onchange="switchType('specialist')"> Specialist
+        </label>
+      </div>
+    </div>
+
+    <div class="fg hidden" id="specRow">
+      <label class="lbl">Specialization</label>
+      <select class="inp" id="specSel" onchange="refreshDr()">
+        <option value="">— Any specialization —</option>
+        {% for s in specializations %}<option value="{{ s.0 }}">{{ s.1 }}</option>{% endfor %}
+      </select>
+    </div>
+
+    <div class="fg">
+      <label class="lbl">Doctor <span class="req">*</span></label>
+      <div class="search-wrap">
+        <input class="inp" id="drInp" placeholder="Click to see all doctors, or type to filter…" autocomplete="off">
+        <div class="search-drop" id="drDrop"></div>
+      </div>
+      <input type="hidden" id="drId">
+      <div id="drSelected" style="margin-top:5px;font-size:.78rem;color:var(--teal);font-weight:700;display:none"></div>
+    </div>
+
+    <div class="g2">
+      <div class="fg">
+        <label class="lbl">Nurse <span class="req">*</span></label>
+        <select class="inp" id="nurseId">
+          <option value="">— Select nurse —</option>
+          {% for n in nurses %}<option value="{{ n.id }}">{{ n.display_name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="fg">
+        <label class="lbl">Accountant <span class="req">*</span></label>
+        <select class="inp" id="acctId">
+          <option value="">— Select accountant —</option>
+          {% for a in accountants %}<option value="{{ a.id }}">{{ a.display_name }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label class="lbl">Consultation Fee ₦</label><input class="inp" type="number" id="visitFee" placeholder="0.00" min="0" step="100"></div>
+  </div>
+  <div class="modal-f">
+    <button class="btn btn-ghost" onclick="C.modal('nvModal',false)">Cancel</button>
+    <button class="btn btn-primary" id="submitBtn" onclick="submitVisit()">Register Visit</button>
+  </div>
+</div></div>
+{% endblock %}
+{% block js %}
+<script>
+let selPtId='',selDrId='',curType='general',drCtrl=null;
+
+window.addEventListener('DOMContentLoaded',()=>{
+  // Patient search
+  mkPatientSearch('ptInp','ptDrop',p=>{
+    selPtId=String(p.id);
+    document.getElementById('ptInp').value=p.name;
+    document.getElementById('ptId').value=selPtId;
+    const sel=document.getElementById('ptSelected');
+    sel.textContent='✓ '+p.name+' (@'+p.username+')';
+    sel.style.display='block';
+  });
+  // Doctor search — show all on focus
+  initDrSearch();
+});
+
+function initDrSearch(){
+  drCtrl=mkDoctorSearch('drInp','drDrop',d=>{
+    selDrId=String(d.id);
+    document.getElementById('drInp').value=d.name;
+    document.getElementById('drId').value=selDrId;
+    const sel=document.getElementById('drSelected');
+    sel.textContent='✓ Dr. '+d.name+(d.specialization?' · '+d.specialization:'');
+    sel.style.display='block';
+  },()=>curType,()=>document.getElementById('specSel')?.value||'');
+}
+
+function switchType(t){
+  curType=t;
+  selDrId='';document.getElementById('drId').value='';document.getElementById('drInp').value='';document.getElementById('drSelected').style.display='none';
+  document.getElementById('specRow').classList.toggle('hidden',t!=='specialist');
+  // Update button styles
+  if(t==='general'){
+    document.getElementById('lblGen').style.cssText='flex:1;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1.5px solid var(--teal);border-radius:var(--r-sm);cursor:pointer;font-size:.83rem;font-weight:700;color:var(--teal);background:var(--teal-light);transition:.15s';
+    document.getElementById('lblSpec').style.cssText='flex:1;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1.5px solid var(--border2);border-radius:var(--r-sm);cursor:pointer;font-size:.83rem;font-weight:700;color:var(--text2);transition:.15s';
+  }else{
+    document.getElementById('lblSpec').style.cssText='flex:1;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1.5px solid var(--teal);border-radius:var(--r-sm);cursor:pointer;font-size:.83rem;font-weight:700;color:var(--teal);background:var(--teal-light);transition:.15s';
+    document.getElementById('lblGen').style.cssText='flex:1;display:flex;align-items:center;gap:7px;padding:9px 13px;border:1.5px solid var(--border2);border-radius:var(--r-sm);cursor:pointer;font-size:.83rem;font-weight:700;color:var(--text2);transition:.15s';
+  }
+  initDrSearch();setTimeout(()=>drCtrl?.refresh(),80);
+}
+
+function refreshDr(){selDrId='';document.getElementById('drId').value='';document.getElementById('drInp').value='';document.getElementById('drSelected').style.display='none';setTimeout(()=>drCtrl?.refresh(),80);}
+
+async function submitVisit(){
+  const ptId=document.getElementById('ptId').value||selPtId;
+  const drId=document.getElementById('drId').value||selDrId;
+  const nurseId=document.getElementById('nurseId').value;
+  const acctId=document.getElementById('acctId').value;
+  const fee=document.getElementById('visitFee').value||'0';
+
+  if(!ptId){C.toast('Please select a patient first','err');return;}
+  if(!drId){C.toast('Please select a doctor','err');return;}
+  if(!nurseId){C.toast('Please select a nurse','err');return;}
+  if(!acctId){C.toast('Please select an accountant','err');return;}
+
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;btn.textContent='Registering…';
+
+  try{
+    const r=await C.post('/api/create-visit/',{
+      patient_id:ptId,doctor_id:drId,nurse_id:nurseId,accountant_id:acctId,consultation_fee:fee
+    });
+    if(r.status==='ok'){
+      C.toast('Visit registered successfully!','ok');
+      C.modal('nvModal',false);
+      setTimeout(()=>location.reload(),600);
+    }else{
+      C.toast(r.error||'Registration failed','err');
+      btn.disabled=false;btn.textContent='Register Visit';
+    }
+  }catch(e){
+    C.toast('Network error — try again','err');
+    btn.disabled=false;btn.textContent='Register Visit';
+  }
+}
+</script>
+{% endblock %}

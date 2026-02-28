@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% load hp_tags %}
+{% block title %}History — Rhudesi{% endblock %}{% block logo_suffix %}Nurse{% endblock %}{% block page_title %}Patient History{% endblock %}
+{% block nav %}
+<a href="{% url 'nurse_dashboard' %}" class="sb-link"><span class="sb-link-ico">📋</span>Queue</a>
+<a href="{% url 'ward_dashboard' %}" class="sb-link"><span class="sb-link-ico">🛏</span>Ward</a>
+<a href="{% url 'nurse_history' %}" class="sb-link on"><span class="sb-link-ico">📂</span>History</a>
+{% endblock %}
+{% block content %}
+<div class="card"><div class="tbl-wrap"><table>
+  <thead><tr><th>#</th><th>Patient</th><th>Doctor</th><th>BP</th><th>Pulse</th><th>Temp</th><th>Status</th><th>Date</th></tr></thead>
+  <tbody>{% if not history %}<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">No history</td></tr>{% endif %}
+  {% for v in history %}<tr>
+    <td class="mono txt-muted">{{ v.queue_number }}</td>
+    <td class="fw-7">{{ v.patient.display_name }}</td>
+    <td class="txt-dim txt-sm">Dr. {{ v.doctor.get_full_name|default:v.doctor.username }}</td>
+    <td class="mono txt-sm">{% if v.vitals %}{{ v.vitals.blood_pressure|default:"—" }}{% else %}—{% endif %}</td>
+    <td class="mono txt-sm">{% if v.vitals %}{{ v.vitals.pulse_rate|default:"—" }}{% else %}—{% endif %}</td>
+    <td class="mono txt-sm">{% if v.vitals %}{{ v.vitals.temperature|default:"—" }}{% else %}—{% endif %}</td>
+    <td><span class="badge {% if v.status == 'completed' %}b-teal{% else %}b-blue{% endif %}">{{ v.get_status_display }}</span></td>
+    <td class="txt-xs txt-muted">{{ v.updated_at|date:"d M Y, H:i" }}</td>
+  </tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

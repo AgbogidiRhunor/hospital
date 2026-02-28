@@ -1,0 +1,245 @@
+{% load hp_tags %}<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Visit Summary — Rhudesi Hospital</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f0f4f8;padding:28px;display:flex;flex-direction:column;align-items:center;gap:12px;color:#1A2332}
+button.print-btn{padding:9px 20px;background:#00C896;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:.85rem}
+.wrap{width:100%;max-width:680px}
+.card{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08);margin-bottom:14px}
+.hd{background:linear-gradient(135deg,#0B2240,#162236);padding:18px 24px;color:#fff;display:flex;justify-content:space-between;align-items:flex-start}
+.hd-t{font-size:1.05rem;font-weight:800;color:#E8F0F8;margin-bottom:2px}
+.hd-s{font-size:.7rem;color:#8DA8C4}
+.hd-r{text-align:right}
+.body{padding:18px 22px}
+.sec{margin-bottom:16px}
+.sec-title{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#8DA8C4;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #E5EBF0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;color:#8DA8C4;margin-bottom:2px}
+.val{font-weight:700;font-size:.83rem;color:#1A2332}
+.val.mono{font-family:'Fira Code',monospace}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.b-teal{background:#dcfce7;color:#059669}
+.b-amber{background:#fef9c3;color:#a16207}
+.b-red{background:#fee2e2;color:#dc2626}
+.b-blue{background:#dbeafe;color:#1d4ed8}
+.b-gray{background:#f3f4f6;color:#6b7280}
+.item-row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid #f0f4f8;font-size:.82rem}
+.item-row:last-child{border-bottom:none}
+.item-name{color:#4A5568}
+.item-val{font-family:'Fira Code',monospace;font-weight:700;color:#1A2332}
+.result-box{padding:7px 10px;background:#f0fdf9;border:1px solid #a7f3d0;border-radius:5px;font-size:.77rem;margin-top:4px}
+.result-label{font-weight:700;color:#059669}
+.note-box{background:#f8fafc;border:1px solid #E5EBF0;border-radius:6px;padding:10px 12px;font-size:.81rem;line-height:1.55;color:#4A5568}
+.vg{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
+.vg-item{background:#f8fafc;border:1px solid #E5EBF0;border-radius:6px;padding:9px 10px;text-align:center}
+.vg-lbl{font-size:.6rem;font-weight:700;text-transform:uppercase;color:#8DA8C4;margin-bottom:3px}
+.vg-val{font-family:'Fira Code',monospace;font-weight:700;font-size:.95rem;color:#1A2332}
+.vg-unit{font-size:.62rem;color:#8DA8C4}
+.total-row{background:#f0fdf9;border:1px solid #a7f3d0;border-radius:6px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.total-lbl{font-size:.7rem;font-weight:700;text-transform:uppercase;color:#059669}
+.total-val{font-family:'Fira Code',monospace;font-size:1.1rem;font-weight:700;color:#059669}
+.foot{text-align:center;font-size:.65rem;color:#8DA8C4;padding:10px;background:#f9fafb;border-top:1px solid #E5EBF0}
+@media print{button.print-btn{display:none!important}body{background:#fff;padding:0}.card{box-shadow:none;border-radius:0}.wrap{max-width:100%}}
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">🖨 Print Summary</button>
+<div class="wrap">
+
+<!-- Header -->
+<div class="card">
+  <div class="hd">
+    <div>
+      <div class="hd-t">Rhudesi Hospital</div>
+      <div class="hd-s">Patient Visit Summary</div>
+    </div>
+    <div class="hd-r">
+      <div class="hd-s">Visit #{{ visit.id }}</div>
+      <div style="font-size:.75rem;color:#8DA8C4;margin-top:3px">{{ visit.created_at|date:"d F Y" }}</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="grid2">
+      <div><div class="lbl">Patient</div><div class="val">{{ patient.display_name }}</div></div>
+      <div><div class="lbl">Username</div><div class="val mono">@{{ patient.username }}</div></div>
+      {% if patient.date_of_birth %}<div><div class="lbl">Date of Birth</div><div class="val">{{ patient.date_of_birth|date:"d M Y" }}</div></div>{% endif %}
+      {% if patient.gender %}<div><div class="lbl">Gender</div><div class="val">{{ patient.gender }}</div></div>{% endif %}
+      {% if patient.blood_group %}<div><div class="lbl">Blood Group</div><div class="val"><span class="badge b-red">{{ patient.blood_group }}</span></div></div>{% endif %}
+      {% if patient.genotype %}<div><div class="lbl">Genotype</div><div class="val"><span class="badge b-amber">{{ patient.genotype }}</span></div></div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Care Team -->
+<div class="card">
+  <div class="body">
+    <div class="sec-title">Care Team</div>
+    <div class="grid3">
+      {% if visit.doctor %}<div><div class="lbl">Doctor</div><div class="val">Dr. {{ visit.doctor.get_full_name|default:visit.doctor.username }}</div>{% if visit.doctor.specialization %}<div style="font-size:.7rem;color:#8DA8C4">{{ visit.doctor.get_specialization_display }}</div>{% endif %}</div>{% endif %}
+      {% if visit.nurse %}<div><div class="lbl">Nurse</div><div class="val">{{ visit.nurse.display_name }}</div></div>{% endif %}
+      {% if visit.accountant %}<div><div class="lbl">Accountant</div><div class="val">{{ visit.accountant.display_name }}</div></div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Vitals -->
+{% if visit.vitals %}
+<div class="card">
+  <div class="body">
+    <div class="sec-title">Vitals <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.7rem">recorded {{ visit.vitals.recorded_at|date:"d M Y, H:i" }}</span></div>
+    <div class="vg">
+      {% if visit.vitals.blood_pressure %}<div class="vg-item"><div class="vg-lbl">Blood Pressure</div><div class="vg-val">{{ visit.vitals.blood_pressure }}</div><div class="vg-unit">mmHg</div></div>{% endif %}
+      {% if visit.vitals.pulse_rate %}<div class="vg-item"><div class="vg-lbl">Pulse</div><div class="vg-val">{{ visit.vitals.pulse_rate }}</div><div class="vg-unit">bpm</div></div>{% endif %}
+      {% if visit.vitals.temperature %}<div class="vg-item"><div class="vg-lbl">Temp</div><div class="vg-val">{{ visit.vitals.temperature }}</div><div class="vg-unit">°C</div></div>{% endif %}
+      {% if visit.vitals.respiratory_rate %}<div class="vg-item"><div class="vg-lbl">Resp Rate</div><div class="vg-val">{{ visit.vitals.respiratory_rate }}</div><div class="vg-unit">/min</div></div>{% endif %}
+      {% if visit.vitals.oxygen_saturation %}<div class="vg-item"><div class="vg-lbl">SpO₂</div><div class="vg-val">{{ visit.vitals.oxygen_saturation }}</div><div class="vg-unit">%</div></div>{% endif %}
+      {% if visit.vitals.weight %}<div class="vg-item"><div class="vg-lbl">Weight</div><div class="vg-val">{{ visit.vitals.weight }}</div><div class="vg-unit">kg</div></div>{% endif %}
+      {% if visit.vitals.height %}<div class="vg-item"><div class="vg-lbl">Height</div><div class="vg-val">{{ visit.vitals.height }}</div><div class="vg-unit">cm</div></div>{% endif %}
+      {% if visit.vitals.bmi %}<div class="vg-item"><div class="vg-lbl">BMI</div><div class="vg-val">{{ visit.vitals.bmi }}</div></div>{% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Doctor Notes -->
+{% if visit.doctor_notes.all %}
+<div class="card">
+  <div class="body">
+    <div class="sec-title">Clinical Notes</div>
+    {% for note in visit.doctor_notes.all %}
+    <div style="margin-bottom:10px">
+      <div style="font-size:.7rem;color:#8DA8C4;margin-bottom:4px">{{ note.created_at|date:"d M Y, H:i" }}{% if note.doctor %} — Dr. {{ note.doctor.get_full_name|default:note.doctor.username }}{% endif %}</div>
+      <div class="note-box">{{ note.note }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Prescriptions -->
+{% if visit.prescriptions.all %}
+<div class="card">
+  <div class="body">
+    <div class="sec-title">Prescriptions</div>
+    {% for rx in visit.prescriptions.all %}
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+        <span style="font-weight:700;font-size:.83rem">Rx #{{ rx.id }}</span>
+        <span class="badge {% if rx.status == 'dispensed' %}b-teal{% elif rx.status == 'paid' %}b-blue{% else %}b-amber{% endif %}">{{ rx.get_status_display }}</span>
+      </div>
+      {% for item in rx.drugs.all %}
+      <div class="item-row">
+        <span class="item-name">{{ item.drug.name }}{% if item.drug.strength %} ({{ item.drug.strength }}){% endif %}{% if item.dosage %} — {{ item.dosage }}{% endif %} ×{{ item.quantity }}</span>
+        <span class="item-val">₦{{ item.price|floatformat:0 }}</span>
+      </div>
+      {% endfor %}
+      {% if rx.doctor_note %}<div style="font-size:.77rem;color:#6b7280;margin-top:5px">Note: {{ rx.doctor_note }}</div>{% endif %}
+      <div class="total-row" style="margin-top:6px;padding:7px 10px">
+        <span class="total-lbl">Rx Total</span>
+        <span class="total-val">₦{{ rx.total_price|floatformat:0 }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Lab Results -->
+{% if visit.lab_requests.all %}
+<div class="card">
+  <div class="body">
+    <div class="sec-title">Laboratory Tests</div>
+    {% for lr in visit.lab_requests.all %}
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+        <span style="font-weight:700;font-size:.83rem">Lab Request #{{ lr.id }}</span>
+        <span class="badge {% if lr.status == 'completed' %}b-teal{% elif lr.status == 'in_progress' %}b-blue{% else %}b-amber{% endif %}">{{ lr.get_status_display }}</span>
+      </div>
+      {% for t in lr.tests.all %}
+      <div class="item-row" style="flex-direction:column;align-items:flex-start">
+        <div style="display:flex;justify-content:space-between;width:100%">
+          <span class="item-name">{{ t.test.name }}</span>
+          <span>{% if t.is_completed %}<span class="badge b-teal">Done</span>{% else %}<span class="badge b-amber">Pending</span>{% endif %}</span>
+        </div>
+        {% if t.is_completed and t.result_note %}
+        <div class="result-box" style="width:100%"><span class="result-label">Result: </span>{{ t.result_note }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% if lr.doctor_note %}<div style="font-size:.77rem;color:#6b7280;margin-top:5px">Doctor's Note: {{ lr.doctor_note }}</div>{% endif %}
+      <div class="total-row" style="margin-top:6px;padding:7px 10px">
+        <span class="total-lbl">Lab Total</span>
+        <span class="total-val">₦{{ lr.total_price|floatformat:0 }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Admissions -->
+{% if visit.admissions.all %}
+<div class="card">
+  <div class="body">
+    <div class="sec-title">Ward Admissions</div>
+    {% for adm in visit.admissions.all %}
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-weight:700;font-size:.83rem">{{ adm.get_ward_display }} — Bed {{ adm.bed_number }}</span>
+        <span class="badge {% if adm.status == 'admitted' %}b-teal{% elif adm.status == 'paid' %}b-blue{% else %}b-amber{% endif %}">{{ adm.get_status_display }}</span>
+      </div>
+      <div class="grid2" style="margin-bottom:6px">
+        <div><div class="lbl">Daily Rate</div><div class="val mono">₦{{ adm.daily_ward_fee|floatformat:0 }}/day</div></div>
+        <div><div class="lbl">Total Fee</div><div class="val mono">₦{{ adm.total_admission_fee|floatformat:0 }}</div></div>
+      </div>
+      {% if adm.admission_reason %}<div class="note-box">{{ adm.admission_reason }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Visit Summary / Doctor's Final Notes -->
+{% if visit.visit_summary %}
+<div class="card">
+  <div class="body">
+    <div class="sec-title">Visit Summary</div>
+    <div class="note-box">{{ visit.visit_summary }}</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Payments Total -->
+{% if visit.payments.all %}
+<div class="card">
+  <div class="body">
+    <div class="sec-title">Payments</div>
+    {% for pay in visit.payments.all %}
+    <div class="item-row">
+      <span class="item-name">{{ pay.get_payment_type_display }}</span>
+      <span style="display:flex;align-items:center;gap:8px">
+        {% if pay.is_paid %}<span class="badge b-teal">Paid</span>{% else %}<span class="badge b-amber">Pending</span>{% endif %}
+        <span class="item-val">₦{{ pay.amount|floatformat:0 }}</span>
+      </span>
+    </div>
+    {% endfor %}
+    <div class="total-row">
+      <span class="total-lbl">Status</span>
+      <span style="font-size:.82rem;font-weight:700;color:#059669">See individual payments above</span>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="foot">Rhudesi Hospital · Visit #{{ visit.id }} · Generated {% now "d F Y, H:i" %} · This is an official medical record</div>
+</div>
+
+</div>
+</body>
+</html>

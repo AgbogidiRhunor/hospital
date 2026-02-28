@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% load hp_tags %}
+{% block title %}History — Rhudesi{% endblock %}{% block logo_suffix %}Billing{% endblock %}{% block page_title %}Payment History{% endblock %}
+{% block nav %}
+<a href="{% url 'accountant_dashboard' %}" class="sb-link"><span class="sb-link-ico">💳</span>Payments</a>
+<a href="{% url 'accountant_history' %}" class="sb-link on"><span class="sb-link-ico">📂</span>History</a>
+{% endblock %}
+{% block content %}
+<div class="card"><div class="tbl-wrap"><table>
+  <thead><tr><th>#</th><th>Patient</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th><th></th></tr></thead>
+  <tbody>{% if not payments %}<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text3)">No payment history</td></tr>{% endif %}
+  {% for pay in payments %}<tr>
+    <td class="mono txt-muted">{{ pay.id }}</td>
+    <td class="fw-7">{{ pay.patient.display_name }}</td>
+    <td><span class="badge b-gray">{{ pay.get_payment_type_display }}</span></td>
+    <td class="mono fw-7" style="color:var(--teal)">₦{{ pay.amount|floatformat:0 }}</td>
+    <td><span class="badge b-teal">Paid</span></td>
+    <td class="txt-xs txt-muted">{{ pay.paid_at|date:"d M Y, H:i" }}</td>
+    <td><a href="/accounting/receipt/{{ pay.id }}/print/" target="_blank" class="btn btn-ghost btn-xs">🖨</a></td>
+  </tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

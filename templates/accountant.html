@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load hp_tags %}
+{% block title %}Accountant — Rhudesi{% endblock %}
+{% block logo_suffix %}Billing{% endblock %}
+{% block page_title %}Payments{% endblock %}
+{% block nav %}
+<a href="{% url 'accountant_dashboard' %}" class="sb-link on"><span class="sb-link-ico">💳</span>Pending <span class="badge {% if pending %}b-amber{% else %}b-teal{% endif %}" style="margin-left:auto">{{ pending|length }}</span></a>
+<a href="{% url 'accountant_history' %}" class="sb-link"><span class="sb-link-ico">📂</span>History</a>
+{% endblock %}
+{% block topbar_widgets %}
+<div style="display:flex;align-items:center;gap:8px">
+  <span class="txt-xs txt-dim">On Sit</span>
+  <label class="tog"><input type="checkbox" id="togSit" {% if accountant.is_on_sit %}checked{% endif %} onchange="toggleField('is_on_sit',this)"><div class="tog-track"></div><div class="tog-dot"></div></label>
+</div>
+{% endblock %}
+{% block content %}
+<div class="tabs">
+  <div class="tab on" data-tabs="ac" data-tab="acPend">Pending <span class="tab-ct" id="pendCount" style="{% if pending %}background:var(--amber-glow);color:var(--amber){% endif %}">{{ pending|length }}</span></div>
+  <div class="tab" data-tabs="ac" data-tab="acDone">Processed <span class="tab-ct" id="doneCount">{{ processed|length }}</span></div>
+</div>
+
+<div id="acPend" data-group="ac" class="panel on" id="pendingPanel">
+  {% if not pending %}
+  <div class="card" id="allClearCard"><div style="padding:52px;text-align:center">
+    <div style="font-size:2rem;margin-bottom:8px">✓</div>
+    <div style="font-weight:700;color:var(--teal)">All caught up!</div>
+    <div style="font-size:.82rem;color:var(--text3);margin-top:4px">No pending payments</div>
+  </div></div>
+  {% endif %}
+  {% for pay in pending %}
+  <div class="vc" id="pcard{{ pay.id }}" style="border-color:var(--amber-border)">
+    <div class="vc-h" onclick="C.toggle('pd{{ pay.id }}')">
+      <div class="vc-num" style="background:var(--amber-glow);color:var(--amber);border-color:var(--amber-border);font-size:.7rem;font-family:'Fira Code',monospace">₦</div>
+      <div class="vc-info">
+        <div class="vc-name">{{ pay.patient.display_name }}
+          <span class="badge b-amber">{{ pay.get_payment_type_display }}</span>
+        </div>
+        <div class="vc-meta">
+          <span style="font-family:'Fira Code',monospace;font-size:.85rem;color:var(--amber);font-weight:700">₦{{ pay.amount|floatformat:0 }}</span>
+          <span>·</span><span>Visit #{{ pay.visit.id }}</span>
+          <span>·</span><span>{{ pay.created_at|date:"d M, H:i" }}</span>
+          {% if pay.prescription %}<span>·</span><span class="txt-xs">{{ pay.prescription.drugs.count }} drug(s)</span>{% endif %}
+          {% if pay.lab_request %}<span>·</span><span class="txt-xs">{{ pay.lab_request.tests.count }} test(s)</span>{% endif %}
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();confirmPay({{ pay.id }},this)">Confirm Paid ✓</button>
+    </div>
+    <div class="vc-body hidden" id="pd{{ pay.id }}">
+      {% if pay.prescription %}
+      <div class="sl">Drug Items</div>
+      {% for item in pay.prescription.drugs.all %}
+      <div class="drug-row"><div class="drug-name">{{ item.drug.name }}{% if item.drug.strength %} <span class="txt-muted">({{ item.drug.strength }})</span>{% endif %}<span class="drug-sub">{{ item.dosage }} · ×{{ item.quantity }}</span></div><span class="mono txt-sm">₦{{ item.price|floatformat:0 }}</span></div>
+      {% endfor %}
+      {% endif %}
+      {% if pay.lab_request %}
+      <div class="sl">Lab Tests</div>
+      {% for t in pay.lab_request.tests.all %}
+      <div class="drug-row"><div class="drug-name">{{ t.test.name }}</div><span class="mono txt-sm">₦{{ t.price_at_time|floatformat:0 }}</span></div>
+      {% endfor %}
+      {% endif %}
+      {% if pay.admission %}
+      <div class="sl">Admission</div>
+      <div class="drug-row"><div class="drug-name">{{ pay.admission.get_ward_display }} — Bed {{ pay.admission.bed_number }}<span class="drug-sub">{{ pay.admission.admission_reason|truncatechars:50 }}</span></div><span class="badge b-amber">₦{{ pay.amount|floatformat:0 }}</span></div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div id="acDone" data-group="ac" class="panel">
+  {% if not processed %}
+  <div class="card"><div style="padding:40px;text-align:center;color:var(--text3)">No processed payments yet</div></div>
+  {% else %}
+  <div class="card"><div class="tbl-wrap"><table>
+    <thead><tr><th>Patient</th><th>Type</th><th>Amount</th><th>Paid At</th><th></th></tr></thead>
+    <tbody id="processedBody">{% for pay in processed %}<tr>
+      <td class="fw-7">{{ pay.patient.display_name }}</td>
+      <td><span class="badge b-teal">{{ pay.get_payment_type_display }}</span></td>
+      <td class="mono fw-7" style="color:var(--teal)">₦{{ pay.amount|floatformat:0 }}</td>
+      <td class="txt-xs txt-muted">{{ pay.paid_at|date:"d M, H:i" }}</td>
+      <td><a href="/accounting/receipt/{{ pay.id }}/print/" target="_blank" class="btn btn-ghost btn-xs">🖨 Print</a></td>
+    </tr>{% endfor %}</tbody>
+  </table></div></div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block js %}
+<script>
+async function toggleField(field,el){
+  const r=await C.post('/api/toggle-availability/',{field});
+  if(r.status==='ok')C.toast(r.value?'On sit':'Off sit','ok');
+  else{C.toast(r.error||'Error','err');el.checked=!el.checked;}
+}
+
+async function confirmPay(id,btn){
+  const r=await C.post(`/accounting/confirm/${id}/`);
+  if(r.status==='ok'){
+    C.toast('Payment confirmed!','ok');
+    // Remove from pending list
+    const card=document.getElementById('pcard'+id);
+    const name=card.querySelector('.vc-name')?.textContent?.trim().split('\n')[0]?.trim()||'Patient';
+    const amount=card.querySelector('[style*="amber"]')?.textContent||'';
+    const type=card.querySelector('.badge')?.textContent||'';
+    card.remove();
+    // Update pending count badge
+    const pendCount=document.getElementById('pendCount');
+    if(pendCount){const n=Math.max(0,(parseInt(pendCount.textContent)||1)-1);pendCount.textContent=n;if(n===0){pendCount.style.background='';pendCount.style.color='';}}
+    // Check if pending panel is now empty
+    const panel=document.getElementById('acPend');
+    const remaining=panel.querySelectorAll('.vc');
+    if(!remaining.length){
+      const empty=document.createElement('div');
+      empty.className='card';empty.id='allClearCard';
+      empty.innerHTML='<div style="padding:52px;text-align:center"><div style="font-size:2rem;margin-bottom:8px">✓</div><div style="font-weight:700;color:var(--teal)">All caught up!</div><div style="font-size:.82rem;color:var(--text3);margin-top:4px">No pending payments</div></div>';
+      panel.appendChild(empty);
+    }
+    // Reload page after short delay to refresh processed tab
+    setTimeout(()=>location.reload(),800);
+  } else {
+    C.toast(r.error||'Error confirming','err');
+  }
+}
+</script>
+{% endblock %}

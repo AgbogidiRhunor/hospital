@@ -1,0 +1,53 @@
+{% extends "base.html" %}{% load hp_tags %}
+{% block title %}Profile — Rhudesi{% endblock %}{% block logo_suffix %}Patient Portal{% endblock %}{% block page_title %}My Profile{% endblock %}
+{% block nav %}
+<a href="{% url 'patient_dashboard' %}" class="sb-link"><span class="sb-link-ico">🏥</span>Dashboard</a>
+<a href="{% url 'patient_records' %}" class="sb-link"><span class="sb-link-ico">📄</span>Records</a>
+<a href="{% url 'patient_profile' %}" class="sb-link on"><span class="sb-link-ico">👤</span>Profile</a>
+{% endblock %}
+{% block content %}
+<form method="post">{% csrf_token %}
+<div class="g2" style="gap:14px">
+<div class="col">
+<div class="card">
+  <div class="card-h"><span class="card-title">Personal Details</span></div>
+  <div class="card-b">
+    <div class="g2">
+      <div class="fg"><label class="lbl">First Name</label><input name="first_name" class="inp" value="{{ user.first_name }}"></div>
+      <div class="fg"><label class="lbl">Last Name</label><input name="last_name" class="inp" value="{{ user.last_name }}"></div>
+      <div class="fg"><label class="lbl">Preferred Name</label><input name="preferred_name" class="inp" value="{{ user.preferred_name|default:'' }}"></div>
+      <div class="fg"><label class="lbl">Gender</label><select name="gender" class="inp"><option value="">—</option>{% for v,l in user.GENDER_CHOICES %}<option value="{{ v }}" {% if user.gender == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="fg"><label class="lbl">Date of Birth</label><input type="date" name="date_of_birth" class="inp" value="{{ user.date_of_birth|date:'Y-m-d' }}"></div>
+      <div class="fg"><label class="lbl">Phone</label><input name="phone" class="inp" value="{{ user.phone|default:'' }}"></div>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-h"><span class="card-title">Emergency Contact</span></div>
+  <div class="card-b">
+    <div class="fg"><label class="lbl">Name</label><input name="emergency_contact_name" class="inp" value="{{ user.emergency_contact_name|default:'' }}"></div>
+    <div class="fg"><label class="lbl">Phone</label><input name="emergency_contact_phone" class="inp" value="{{ user.emergency_contact_phone|default:'' }}"></div>
+    <div class="fg"><label class="lbl">Relationship</label><input name="emergency_contact_relationship" class="inp" value="{{ user.emergency_contact_relationship|default:'' }}"></div>
+  </div>
+</div>
+</div>
+<div class="col">
+<div class="card">
+  <div class="card-h"><span class="card-title">Medical Information</span></div>
+  <div class="card-b">
+    <div class="g2">
+      <div class="fg"><label class="lbl">Blood Group</label><select name="blood_group" class="inp"><option value="">—</option>{% for bg in blood_groups %}<option value="{{ bg }}" {% if user.blood_group == bg %}selected{% endif %}>{{ bg }}</option>{% endfor %}</select></div>
+      <div class="fg"><label class="lbl">Genotype</label><select name="genotype" class="inp"><option value="">—</option>{% for g in genotypes %}<option value="{{ g }}" {% if user.genotype == g %}selected{% endif %}>{{ g }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="fg"><label class="lbl">Allergies</label><textarea name="allergies" class="inp" rows="2" placeholder="List known allergies…">{{ user.allergies|default:'' }}</textarea></div>
+    <div class="fg"><label class="lbl">Chronic Conditions</label><textarea name="chronic_conditions" class="inp" rows="2" placeholder="e.g. diabetes, hypertension…">{{ user.chronic_conditions|default:'' }}</textarea></div>
+    <div class="fg"><label class="lbl">Current Medications</label><textarea name="current_medications" class="inp" rows="2">{{ user.current_medications|default:'' }}</textarea></div>
+    <div class="fg"><label class="lbl">Previous Surgeries</label><textarea name="previous_surgeries" class="inp" rows="2">{{ user.previous_surgeries|default:'' }}</textarea></div>
+    <div class="fg"><label class="lbl">Family History</label><textarea name="family_history" class="inp" rows="2">{{ user.family_history|default:'' }}</textarea></div>
+  </div>
+</div>
+<button type="submit" class="btn btn-primary w-full">Save Profile</button>
+</div>
+</div>
+</form>
+{% endblock %}

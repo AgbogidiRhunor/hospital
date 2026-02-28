@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% load hp_tags %}
+{% block title %}History — Rhudesi{% endblock %}{% block logo_suffix %}Doctor{% endblock %}{% block page_title %}Visit History{% endblock %}
+{% block nav %}
+<a href="{% url 'doctor_dashboard' %}" class="sb-link"><span class="sb-link-ico">👥</span>Queue</a>
+<a href="{% url 'ward_dashboard' %}" class="sb-link"><span class="sb-link-ico">🛏</span>Ward</a>
+<a href="{% url 'doctor_history' %}" class="sb-link on"><span class="sb-link-ico">📂</span>History</a>
+{% endblock %}
+{% block content %}
+<div class="card"><div class="tbl-wrap"><table>
+  <thead><tr><th>#</th><th>Patient</th><th>Status</th><th>Notes</th><th>Rx</th><th>Labs</th><th>Date</th></tr></thead>
+  <tbody>{% if not visits %}<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text3)">No history</td></tr>{% endif %}
+  {% for v in visits %}<tr>
+    <td class="mono txt-muted">{{ v.queue_number }}</td>
+    <td class="fw-7">{{ v.patient.display_name }}</td>
+    <td><span class="badge {% if v.status == 'completed' %}b-teal{% else %}b-blue{% endif %}">{{ v.get_status_display }}</span></td>
+    <td class="txt-dim txt-sm">{{ v.doctor_notes.count }}</td>
+    <td class="txt-dim txt-sm">{{ v.prescriptions.count }}</td>
+    <td class="txt-dim txt-sm">{{ v.lab_requests.count }}</td>
+    <td class="txt-xs txt-muted">{{ v.created_at|date:"d M Y" }}</td>
+  </tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

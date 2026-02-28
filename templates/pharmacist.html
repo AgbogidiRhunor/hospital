@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% load hp_tags %}
+{% block title %}Pharmacy — Rhudesi{% endblock %}
+{% block logo_suffix %}Pharmacy{% endblock %}
+{% block page_title %}Prescriptions{% endblock %}
+{% block nav %}
+<a href="{% url 'pharmacist_dashboard' %}" class="sb-link on"><span class="sb-link-ico">💊</span>Dashboard</a>
+<a href="{% url 'pharmacist_history' %}" class="sb-link"><span class="sb-link-ico">📂</span>History</a>
+{% endblock %}
+{% block topbar_widgets %}
+<div style="display:flex;align-items:center;gap:8px">
+  <button class="btn btn-primary btn-sm" onclick="C.modal('drugMgmtModal')">💊 Manage Drugs</button>
+  <span class="txt-xs txt-dim">Available</span>
+  <label class="tog"><input type="checkbox" id="togAvail" {% if pharmacist.is_available %}checked{% endif %} onchange="toggleField('is_available',this)"><div class="tog-track"></div><div class="tog-dot"></div></label>
+</div>
+{% endblock %}
+{% block content %}
+<div class="tabs">
+  <div class="tab on" data-tabs="ph" data-tab="phMy">My Queue <span class="tab-ct">{{ my_pending|length }}</span></div>
+  <div class="tab" data-tabs="ph" data-tab="phUn">Unassigned <span class="tab-ct">{{ unassigned|length }}</span></div>
+  <div class="tab" data-tabs="ph" data-tab="phDone">Dispensed</div>
+</div>
+
+<div id="phMy" data-group="ph" class="panel on">
+  {% if not my_pending %}<div class="card"><div style="padding:52px;text-align:center;color:var(--text3)">No assigned prescriptions</div></div>{% endif %}
+  {% for rx in my_pending %}
+  <div class="vc">
+    <div class="vc-h" onclick="C.toggle('pb{{ rx.id }}')">
+      <div class="vc-num" style="font-size:.65rem;font-family:'Fira Code',monospace">Rx</div>
+      <div class="vc-info">
+        <div class="vc-name">{{ rx.patient.display_name }}<span class="badge b-blue">Paid</span></div>
+        <div class="vc-meta"><span class="mono" style="color:var(--teal)">₦{{ rx.total_price|floatformat:0 }}</span><span>·</span><span>{{ rx.drugs.count }} drug(s)</span><span>·</span><span>{{ rx.created_at|date:"d M, H:i" }}</span></div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();dispense({{ rx.id }},this)">Dispense ✓</button>
+    </div>
+    <div class="vc-body hidden" id="pb{{ rx.id }}">
+      <div class="sl">Drugs</div>
+      {% for item in rx.drugs.all %}
+      <div class="drug-row"><div class="drug-name">{{ item.drug.name }}{% if item.drug.strength %} <span class="txt-muted">({{ item.drug.strength }})</span>{% endif %}<span class="drug-sub">{{ item.dosage }}{% if item.injection_days %} · 💉{{ item.injection_days }}d{% endif %}</span></div><div class="flex items-c gap-2"><span class="mono txt-xs txt-dim">×{{ item.quantity }}</span><span class="mono txt-xs txt-dim">₦{{ item.price|floatformat:0 }}</span></div></div>
+      {% endfor %}
+      {% if rx.doctor_note %}<div class="alert a-info mt-2">{{ rx.doctor_note }}</div>{% endif %}
+      <div class="mt-2 flex justify-b"><span></span><a href="{% url 'print_prescription' rx.id %}" target="_blank" class="btn btn-ghost btn-sm">🖨 Print</a></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div id="phUn" data-group="ph" class="panel">
+  {% if not unassigned %}<div class="card"><div style="padding:40px;text-align:center;color:var(--text3)">No unassigned prescriptions</div></div>{% endif %}
+  {% for rx in unassigned %}
+  <div class="vc">
+    <div class="vc-h">
+      <div class="vc-num" style="font-size:.65rem;font-family:'Fira Code',monospace">Rx</div>
+      <div class="vc-info">
+        <div class="vc-name">{{ rx.patient.display_name }}<span class="badge b-amber">Unassigned</span></div>
+        <div class="vc-meta"><span class="mono" style="color:var(--teal)">₦{{ rx.total_price|floatformat:0 }}</span><span>·</span><span>{{ rx.drugs.count }} drug(s)</span></div>
+      </div>
+      <button class="btn btn-blue btn-sm" onclick="takePx({{ rx.id }},this)">Take This →</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div id="phDone" data-group="ph" class="panel">
+  {% if not dispensed %}<div class="card"><div style="padding:40px;text-align:center;color:var(--text3)">Nothing dispensed yet</div></div>{% else %}
+  <div class="card"><div class="tbl-wrap"><table>
+    <thead><tr><th>Patient</th><th>Drugs</th><th>Total</th><th>Date</th><th></th></tr></thead>
+    <tbody>{% for rx in dispensed %}<tr>
+      <td class="fw-7">{{ rx.patient.display_name }}</td>
+      <td class="txt-dim txt-sm">{{ rx.drugs.count }} item(s)</td>
+      <td class="mono fw-7" style="color:var(--teal)">₦{{ rx.total_price|floatformat:0 }}</td>
+      <td class="txt-xs txt-muted">{{ rx.dispensed_at|date:"d M Y, H:i" }}</td>
+      <td><a href="{% url 'print_prescription' rx.id %}" target="_blank" class="btn btn-ghost btn-xs">🖨</a></td>
+    </tr>{% endfor %}</tbody>
+  </table></div></div>{% endif %}
+</div>
+
+<!-- DRUG MANAGEMENT MODAL -->
+<div class="overlay" id="drugMgmtModal"><div class="modal modal-xl">
+  <div class="modal-h"><div class="modal-title">Manage Drug Inventory</div><button class="modal-x" onclick="C.modal('drugMgmtModal',false)">×</button></div>
+  <div class="modal-b">
+    <div class="tabs" style="margin-bottom:14px">
+      <div class="tab on" data-tabs="dm" data-tab="dmList">Drug List <span class="tab-ct">{{ drugs|length }}</span></div>
+      <div class="tab" data-tabs="dm" data-tab="dmAdd">+ Add New Drug</div>
+    </div>
+
+    <!-- Drug List -->
+    <div id="dmList" data-group="dm" class="panel on">
+      <div style="margin-bottom:10px">
+        <input class="inp" id="drugFilter" placeholder="Filter drugs…" oninput="filterDrugs(this.value)" style="max-width:300px">
+      </div>
+      <div class="tbl-wrap"><table id="drugTable">
+        <thead><tr><th>Name</th><th>Form</th><th>Strength</th><th>Price</th><th>Type</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for d in drugs %}
+          <tr id="drow{{ d.id }}" data-name="{{ d.name|lower }}">
+            <td class="fw-7" id="dname{{ d.id }}">{{ d.name }}</td>
+            <td class="txt-dim txt-sm" id="dform{{ d.id }}">{{ d.dosage_form|default:"—" }}</td>
+            <td class="mono txt-sm" id="dstr{{ d.id }}">{{ d.strength|default:"—" }}</td>
+            <td class="mono fw-7" style="color:var(--teal)" id="dprice{{ d.id }}">₦{{ d.price|floatformat:0 }}</td>
+            <td>{% if d.is_injection %}<span class="badge b-purple">💉 Injection</span>{% else %}<span class="badge b-gray">Oral</span>{% endif %}</td>
+            <td><span class="badge b-teal">Active</span></td>
+            <td style="display:flex;gap:5px">
+              <button class="btn btn-ghost btn-xs" onclick="editDrug({{ d.id }},'{{ d.name|escapejs }}','{{ d.dosage_form|escapejs }}','{{ d.strength|escapejs }}',{{ d.price }},{{ d.is_injection|yesno:'true,false' }})">✏</button>
+              <button class="btn btn-danger btn-xs" onclick="deleteDrug({{ d.id }},this)">🗑</button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text3)">No drugs in database. Add one →</td></tr>
+          {% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- Add New Drug -->
+    <div id="dmAdd" data-group="dm" class="panel">
+      <div class="g2">
+        <div class="fg"><label class="lbl">Drug Name <span style="color:var(--red)">*</span></label><input class="inp" id="newDrugName" placeholder="e.g. Amoxicillin"></div>
+        <div class="fg"><label class="lbl">Dosage Form</label><input class="inp" id="newDrugForm" placeholder="e.g. Tablet, Capsule, Syrup, Injection"></div>
+        <div class="fg"><label class="lbl">Strength</label><input class="inp" id="newDrugStr" placeholder="e.g. 500mg, 250mg/5ml"></div>
+        <div class="fg"><label class="lbl">Price ₦ <span style="color:var(--red)">*</span></label><input class="inp" type="number" id="newDrugPrice" placeholder="0.00" min="0" step="0.01"></div>
+      </div>
+      <div class="fg">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.84rem;font-weight:600">
+          <input type="checkbox" id="newDrugInj"> This is an injectable drug (💉 Injection)
+        </label>
+      </div>
+      <div class="flex justify-b items-c mt-2">
+        <span class="txt-xs txt-muted">Drug will be available to all doctors immediately</span>
+        <button class="btn btn-primary" onclick="addDrug()">Add to Database →</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<!-- EDIT DRUG MODAL -->
+<div class="overlay" id="editDrugModal"><div class="modal">
+  <div class="modal-h"><div class="modal-title">Edit Drug</div><button class="modal-x" onclick="C.modal('editDrugModal',false)">×</button></div>
+  <div class="modal-b">
+    <input type="hidden" id="editDrugId">
+    <div class="g2">
+      <div class="fg"><label class="lbl">Drug Name</label><input class="inp" id="editDrugName"></div>
+      <div class="fg"><label class="lbl">Dosage Form</label><input class="inp" id="editDrugForm"></div>
+      <div class="fg"><label class="lbl">Strength</label><input class="inp" id="editDrugStr"></div>
+      <div class="fg"><label class="lbl">Price ₦</label><input class="inp" type="number" id="editDrugPrice" step="0.01"></div>
+    </div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.84rem;font-weight:600"><input type="checkbox" id="editDrugInj"> Injectable drug</label></div>
+  </div>
+  <div class="modal-f"><button class="btn btn-ghost btn-sm" onclick="C.modal('editDrugModal',false)">Cancel</button><button class="btn btn-primary btn-sm" onclick="saveEditDrug()">Save Changes</button></div>
+</div></div>
+
+{% endblock %}
+{% block js %}
+<script>
+async function toggleField(field,el){const r=await C.post('/api/toggle-availability/',{field});if(r.status==='ok')C.toast(r.value?'Available':'Unavailable','ok');else{C.toast(r.error||'Error','err');el.checked=!el.checked;}}
+async function dispense(id,btn){const r=await C.post(`/pharmacy/dispense/${id}/`);if(r.status==='ok'){C.toast('Dispensed!','ok');btn.closest('.vc').remove();}else C.toast(r.error,'err');}
+async function takePx(id,btn){const r=await C.post(`/pharmacy/take/${id}/`);if(r.status==='ok'){C.toast('Assigned to you','ok');setTimeout(()=>location.reload(),400);}else C.toast(r.error,'err');}
+
+function filterDrugs(q){
+  document.querySelectorAll('#drugTable tbody tr[data-name]').forEach(row=>{
+    row.style.display=row.dataset.name.includes(q.toLowerCase())?'':'none';
+  });
+}
+
+async function addDrug(){
+  const name=document.getElementById('newDrugName').value.trim();
+  const price=document.getElementById('newDrugPrice').value;
+  if(!name){C.toast('Drug name required','err');return;}
+  if(!price){C.toast('Price required','err');return;}
+  const r=await C.post('/pharmacy/api/drug/add/',{
+    name, price,
+    dosage_form:document.getElementById('newDrugForm').value,
+    strength:document.getElementById('newDrugStr').value,
+    is_injection:document.getElementById('newDrugInj').checked?'1':'0',
+  });
+  if(r.status==='ok'){
+    C.toast('Drug added: '+r.name,'ok');
+    document.getElementById('newDrugName').value='';
+    document.getElementById('newDrugForm').value='';
+    document.getElementById('newDrugStr').value='';
+    document.getElementById('newDrugPrice').value='';
+    document.getElementById('newDrugInj').checked=false;
+    // Add row to table
+    const tbody=document.querySelector('#drugTable tbody');
+    const tr=document.createElement('tr');
+    tr.id='drow'+r.id;tr.dataset.name=r.name.toLowerCase();
+    tr.innerHTML=`<td class="fw-7" id="dname${r.id}">${r.name}</td><td class="txt-dim txt-sm" id="dform${r.id}">—</td><td class="mono txt-sm" id="dstr${r.id}">—</td><td class="mono fw-7" style="color:var(--teal)" id="dprice${r.id}">₦${Number(price).toLocaleString()}</td><td><span class="badge b-gray">Oral</span></td><td><span class="badge b-teal">Active</span></td><td style="display:flex;gap:5px"><button class="btn btn-ghost btn-xs" onclick="editDrug(${r.id},'${r.name}','','',${price},false)">✏</button><button class="btn btn-danger btn-xs" onclick="deleteDrug(${r.id},this)">🗑</button></td>`;
+    tbody.insertBefore(tr, tbody.firstChild);
+  } else C.toast(r.error,'err');
+}
+
+function editDrug(id,name,form,str,price,inj){
+  document.getElementById('editDrugId').value=id;
+  document.getElementById('editDrugName').value=name;
+  document.getElementById('editDrugForm').value=form;
+  document.getElementById('editDrugStr').value=str;
+  document.getElementById('editDrugPrice').value=price;
+  document.getElementById('editDrugInj').checked=inj;
+  C.modal('editDrugModal');
+}
+
+async function saveEditDrug(){
+  const id=document.getElementById('editDrugId').value;
+  const r=await C.post(`/pharmacy/api/drug/${id}/edit/`,{
+    name:document.getElementById('editDrugName').value,
+    dosage_form:document.getElementById('editDrugForm').value,
+    strength:document.getElementById('editDrugStr').value,
+    price:document.getElementById('editDrugPrice').value,
+    is_injection:document.getElementById('editDrugInj').checked?'1':'0',
+  });
+  if(r.status==='ok'){
+    C.toast('Drug updated','ok');C.modal('editDrugModal',false);
+    // Update row in table
+    const name=document.getElementById('editDrugName').value;
+    const price=document.getElementById('editDrugPrice').value;
+    const el=document.getElementById('dname'+id);if(el)el.textContent=name;
+    const pe=document.getElementById('dprice'+id);if(pe)pe.textContent='₦'+Number(price).toLocaleString();
+    const fe=document.getElementById('dform'+id);if(fe)fe.textContent=document.getElementById('editDrugForm').value||'—';
+    const se=document.getElementById('dstr'+id);if(se)se.textContent=document.getElementById('editDrugStr').value||'—';
+  } else C.toast(r.error,'err');
+}
+
+async function deleteDrug(id,btn){
+  if(!confirm('Remove this drug from the database? It will no longer appear in prescriptions.'))return;
+  const r=await C.post(`/pharmacy/api/drug/${id}/delete/`);
+  if(r.status==='ok'){
+    C.toast('Drug removed','ok');
+    const row=document.getElementById('drow'+id);if(row)row.remove();
+  } else C.toast(r.error,'err');
+}
+</script>
+{% endblock %}
