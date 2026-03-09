@@ -55,9 +55,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'health_plus.wsgi.application'
 
-DATABASES = {
-    'default': dj_database_url.parse(config('DATABASE_URL'))
-}
+if config('DATABASE_URL', default=None):
+    DATABASES = {
+        'default': dj_database_url.parse(config('DATABASE_URL'))
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME'),
+            'USER': config('DB_USER'),
+            'PASSWORD': config('DB_PASSWORD'),
+            'HOST': config('DB_HOST', default='localhost'),
+            'PORT': config('DB_PORT', default='5432'),
+        }
+    }
 
 AUTH_USER_MODEL = 'management.User'
 
