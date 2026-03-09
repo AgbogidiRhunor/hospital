@@ -10,25 +10,27 @@ from .models import User, ConsultingRoom, SPECIALIZATIONS
 
 
 def login_view(request):
-    # Always show login form — never auto-redirect so different tabs can hold different accounts.
-    # Only redirect after a successful POST login.
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+
+        if not username or not password:
+            messages.error(request, 'Username and password are required.')
+            return render(request, 'login.html')
+
         user = authenticate(request, username=username, password=password)
         if user:
             if not user.is_approved and not user.is_staff:
                 messages.error(request, 'Your account is pending approval.')
                 return render(request, 'login.html')
-            # Flush old session first (creates new session key) then log in
-            logout(request)           # clears any existing session
-            request.session.flush()   # ensure completely fresh session
+
             login(request, user)
             request.session.cycle_key()
             return redirect('dashboard')
-        messages.error(request, 'Invalid username or password.')
-    return render(request, 'login.html')
 
+        messages.error(request, 'Invalid username or password.')
+
+    return render(request, 'login.html')
 
 def logout_view(request):
     logout(request)
