@@ -643,20 +643,20 @@ def patient_records(request):
 
     from records.models import PatientVisit
 
-    visits = (
-        PatientVisit.objects.filter(patient=request.user)
-        .select_related('doctor', 'nurse', 'accountant')
-        .prefetch_related(
-            'doctor_notes',
-            'payments',
-            'prescriptions__drugs__drug',
-            'lab_requests__tests__test',
+    try:
+        visits = (
+            PatientVisit.objects.filter(patient=request.user)
+            .select_related('doctor', 'nurse', 'accountant')
+            .order_by('-created_at')
         )
-        .order_by('-created_at')
-    )
 
-    ctx = {'visits': visits, 'user': request.user}
-    return render(request, 'patient_records.html', ctx)
+        ctx = {'visits': visits, 'user': request.user}
+        return render(request, 'patient_records.html', ctx)
+
+    except Exception:
+        logger.exception("Patient records failed for user_id=%s", request.user.pk)
+        messages.error(request, 'Unable to load your records right now.')
+        return redirect('patient_dashboard')
 
 
 @login_required
