@@ -27,3 +27,18 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
         ('Role', {'fields': ('role', 'first_name', 'last_name', 'email')}),
     )
+
+
+def create_superuser(self, username, email=None, password=None, **extra_fields):
+    extra_fields.setdefault("is_staff", True)
+    extra_fields.setdefault("is_superuser", True)
+    extra_fields.setdefault("is_active", True)
+    extra_fields.setdefault("is_approved", True)
+    extra_fields.setdefault("role", "doctor")
+
+    if extra_fields.get("is_staff") is not True:
+        raise ValueError("Superuser must have is_staff=True.")
+    if extra_fields.get("is_superuser") is not True:
+        raise ValueError("Superuser must have is_superuser=True.")
+
+    return self.create_user(username=username, email=email, password=password, **extra_fields)

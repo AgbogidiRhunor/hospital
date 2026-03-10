@@ -11,6 +11,7 @@ class Payment(models.Model):
         ('surgery', 'Surgery'),
         ('admission_medication', 'Ward Medication'),
     ]
+
     visit = models.ForeignKey('records.PatientVisit', on_delete=models.CASCADE, related_name='payments')
     patient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payments')
     accountant = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='payments_processed')
@@ -24,13 +25,12 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     admission = models.ForeignKey('records.WardAdmission', null=True, blank=True, on_delete=models.SET_NULL, related_name='payments')
     surgery = models.ForeignKey('records.Surgery', null=True, blank=True, on_delete=models.SET_NULL, related_name='payments')
-    accountant_dashboard_deleted = models.BooleanField(default=False)  # soft-delete from processed tab
-    # Part-payment and discount fields
+    accountant_dashboard_deleted = models.BooleanField(default=False)
+
+    # Instalment / grouping fields
+    payment_group = models.CharField(max_length=100, blank=True, default='')
     part_number = models.PositiveIntegerField(default=1)
     total_parts = models.PositiveIntegerField(default=1)
-    payment_group = models.CharField(max_length=50, blank=True)
-    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    original_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     class Meta:
         ordering = ['-created_at']

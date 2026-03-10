@@ -15,6 +15,7 @@ class PatientVisit(models.Model):
         ('rx_paid', 'Prescription Paid — At Pharmacy'),
         ('pharmacy', 'At Pharmacy'),
         ('completed', 'Completed'),
+        ('admitted', 'Admitted to Ward'),   # added — used when patient is on ward
     ]
 
     patient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='visits')
@@ -58,6 +59,7 @@ class PatientVisit(models.Model):
             'rx_pending': 4,
             'rx_paid': 4,
             'pharmacy': 4,
+            'admitted': 4,
             'completed': 5,
         }
         return steps.get(self.status, 1)
@@ -139,7 +141,7 @@ class WardAdmission(models.Model):
     admitted_at = models.DateTimeField(null=True, blank=True)
     discharged_at = models.DateTimeField(null=True, blank=True)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    admission_fee_parts = models.PositiveIntegerField(default=1)  # 1-5 instalments
+    admission_fee_parts = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -206,14 +208,14 @@ class Surgery(models.Model):
     residents_involved = models.BooleanField(default=False)
     observers_permitted = models.BooleanField(default=False)
     photography_permitted = models.BooleanField(default=False)
-    blood_transfusion_consent = models.CharField(max_length=10, choices=[('yes','Yes'),('no','No'),('na','N/A')], default='na')
+    blood_transfusion_consent = models.CharField(max_length=10, choices=[('yes', 'Yes'), ('no', 'No'), ('na', 'N/A')], default='na')
     financial_disclosure = models.TextField(blank=True)
     advance_directives = models.TextField(blank=True)
     postop_instructions = models.TextField(blank=True)
     patient_acknowledged = models.BooleanField(default=False)
     witness_name = models.CharField(max_length=100, blank=True)
     surgery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    surgery_fee_parts = models.PositiveIntegerField(default=1)  # 1-5 instalments
+    surgery_fee_parts = models.PositiveIntegerField(default=1)
     surgery_discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     surgery_drug_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     surgery_lab_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
