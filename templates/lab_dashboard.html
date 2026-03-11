@@ -162,8 +162,8 @@
 
 <script>
 async function toggleAvail(cb){
-  const r=await C.post('/api/toggle-availability/');
-  if(r.status==='ok'){document.getElementById('togAvail').checked=r.is_available;}
+  const r=await C.post('/api/toggle-availability/',{field:'is_available'});
+  if(r.status==='ok'){document.getElementById('togAvail').checked=r.value;}
   else{cb.checked=!cb.checked;C.toast('Failed','err');}
 }
 async function takeLr(id,btn){

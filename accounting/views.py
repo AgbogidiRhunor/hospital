@@ -11,8 +11,10 @@ from management.models import User
 def accountant_dashboard(request):
     if request.user.role != 'accountant':
         return redirect('dashboard')
+    from django.db.models import Q
     pending = Payment.objects.filter(
-        accountant=request.user, is_paid=False
+        Q(accountant=request.user) | Q(accountant__isnull=True),
+        is_paid=False,
     ).select_related(
         'patient', 'visit', 'lab_request', 'prescription', 'surgery', 'admission'
     ).prefetch_related(
@@ -30,7 +32,12 @@ def accountant_dashboard(request):
 @login_required
 def confirm_payment(request, payment_id):
     if request.method == 'POST' and request.user.role == 'accountant':
-        payment = get_object_or_404(Payment, pk=payment_id, accountant=request.user)
+        from django.db.models import Q
+        payment = get_object_or_404(
+            Payment, Q(accountant=request.user) | Q(accountant__isnull=True), pk=payment_id
+        )
+        if not payment.accountant:
+            payment.accountant = request.user
         with transaction.atomic():
             payment.is_paid = True
             payment.paid_at = timezone.now()
@@ -112,7 +119,7 @@ def delete_processed(request, payment_id):
         pay = get_object_or_404(Payment, pk=payment_id, accountant=request.user, is_paid=True)
         pay.accountant_dashboard_deleted = True
         pay.save()
-        return JsonResponse({'status': 'ok'})\
+        return JsonResponse({'status': 'ok'})
 
 
 @login_required

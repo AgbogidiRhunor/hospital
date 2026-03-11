@@ -188,8 +188,6 @@ def _create_part_payments(visit, patient, accountant, payment_type, total_amount
             'accountant': accountant,
             'payment_type': payment_type,
             'amount': amt,
-            'original_amount': float(total_amount) / num_parts,
-            'discount_amount': float(discount_amount) / num_parts if i == 1 else 0,
             'part_number': i,
             'total_parts': num_parts,
             'payment_group': payment_group,
@@ -296,14 +294,17 @@ def update_admission_payment(request, admission_id):
                 admission=admission, payment_type='admission', is_paid=False
             ).order_by('part_number')
             if unpaid.exists():
-                total_unpaid_original = sum(float(p.amount) + float(p.discount_amount) for p in unpaid)
                 count = unpaid.count()
-                # Spread discount evenly across unpaid parts
-                discount_each = round(new_discount / count, 2)
-                for i, p in enumerate(unpaid):
-                    original = total_unpaid_original / count
-                    p.discount_amount = discount_each
-                    p.amount = round(original - discount_each, 2)
+                # Recalculate net amount per part from total_admission_fee and new discount
+                net = float(admission.total_admission_fee) - float(new_discount)
+                if net < 0:
+                    net = 0
+                base = round(net / count, 2)
+                amounts = [base] * count
+                diff = round(net - sum(amounts), 2)
+                amounts[0] = round(amounts[0] + diff, 2)
+                for p, amt in zip(unpaid, amounts):
+                    p.amount = amt
                     p.save()
             admission.discount_amount = new_discount
             admission.save()
@@ -437,11 +438,15 @@ def update_surgery_discount(request, surgery_id):
             ).order_by('part_number')
             if unpaid.exists():
                 count = unpaid.count()
-                discount_each = round(new_discount / count, 2)
-                for p in unpaid:
-                    original = float(p.amount) + float(p.discount_amount)
-                    p.discount_amount = discount_each
-                    p.amount = round(original - discount_each, 2)
+                net = float(surgery.surgery_fee) - float(new_discount)
+                if net < 0:
+                    net = 0
+                base = round(net / count, 2)
+                amounts = [base] * count
+                diff = round(net - sum(amounts), 2)
+                amounts[0] = round(amounts[0] + diff, 2)
+                for p, amt in zip(unpaid, amounts):
+                    p.amount = amt
                     if p.amount < 0:
                         p.amount = 0
                     p.save()
@@ -602,37 +607,30 @@ def patient_review_surgery(request, surgery_id):
 
 @login_required
 def drug_search(request):
-    """Search drugs for doctor prescription modal."""
+    """Return ALL active drugs for client-side filtering. Cached 5 min."""
     from pharmacy.models import Drug
-    q = request.GET.get('q', '').strip()
-    if not q:
-        drugs = Drug.objects.filter(is_active=True)[:30]
-    else:
-        from django.db.models import Q
-        drugs = Drug.objects.filter(is_active=True).filter(
-            Q(name__icontains=q) | Q(strength__icontains=q) | Q(dosage_form__icontains=q)
-        )[:30]
+    from django.views.decorators.cache import cache_page
+    drugs = Drug.objects.filter(is_active=True).order_by('name').values(
+        'id', 'name', 'strength', 'dosage_form', 'price', 'is_injection'
+    )
     results = [{
-        'id': d.pk, 'name': d.name, 'strength': d.strength,
-        'form': d.dosage_form, 'price': float(d.price),
-        'is_injection': getattr(d, 'is_injection', False),
+        'id': d['id'], 'name': d['name'], 'strength': d['strength'] or '',
+        'form': d['dosage_form'] or '', 'price': float(d['price']),
+        'is_injection': d['is_injection'],
     } for d in drugs]
-    return JsonResponse({'results': results})
+    resp = JsonResponse({'results': results})
+    resp['Cache-Control'] = 'private, max-age=300'
+    return resp
 
 
 @login_required
 def lab_test_search(request):
-    """Search lab tests for doctor lab order modal."""
-    q = request.GET.get('q', '').strip()
-    if not q:
-        tests = LabTest.objects.all()[:30]
-    else:
-        from django.db.models import Q
-        tests = LabTest.objects.filter(
-            Q(name__icontains=q) | Q(category__icontains=q)
-        )[:30]
-    results = [{'id': t.pk, 'name': t.name, 'category': t.category, 'price': float(t.price)} for t in tests]
-    return JsonResponse({'results': results})
+    """Return ALL lab tests for client-side filtering. Cached 5 min."""
+    tests = LabTest.objects.all().order_by('name').values('id', 'name', 'category', 'price')
+    results = [{'id': t['id'], 'name': t['name'], 'category': t['category'] or '', 'price': float(t['price'])} for t in tests]
+    resp = JsonResponse({'results': results})
+    resp['Cache-Control'] = 'private, max-age=300'
+    return resp
 
 
 @login_required
